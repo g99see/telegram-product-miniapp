@@ -772,7 +772,7 @@
 
     <script>
         // ==================== CONFIG ====================
-        
+        const https://a6639a86db7638.lhr.life = 'https://a6639a86db7638.lhr.life';
         const CURRENCY = 'DKK';
 
         // Get API URL from: 1) query param, 2) localStorage, 3) placeholder
@@ -842,18 +842,32 @@
                     const prod = products.find(p => p.id === productId);
                     if (prod) {
                         prod.likes = data.likes;
-                        if (likedProducts.has(productId)) {
-                            likedProducts.delete(productId);
-                        } else {
+                        if (data.liked) {
                             likedProducts.add(productId);
+                        } else {
+                            likedProducts.delete(productId);
                         }
                     }
-                    return true;
+                    return data;
                 }
             } catch (e) {
                 console.error('Like error:', e);
             }
-            return false;
+            return null;
+        }
+
+        async function fetchMyLikes() {
+            try {
+                const initData = tg?.initData || '';
+                if (!initData) return;
+                const res = await fetch(`${API_URL}/api/my-likes?initData=${encodeURIComponent(initData)}`);
+                const data = await res.json();
+                if (data.ok) {
+                    likedProducts = new Set(data.liked || []);
+                }
+            } catch (e) {
+                console.error('My-likes error:', e);
+            }
         }
 
         async function suggestProduct(data) {
@@ -952,10 +966,10 @@
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const id = parseInt(btn.dataset.id);
-                    const success = await likeProduct(id);
-                    if (success) {
+                    const data = await likeProduct(id);
+                    if (data) {
                         renderProducts();
-                        showToast('❤️ Лайк добавлен!');
+                        showToast(data.liked ? '❤️ Лайк добавлен!' : '💔 Лайк убран');
                     }
                 });
             });
@@ -1049,14 +1063,14 @@
 
         document.getElementById('modalLikeBtn').addEventListener('click', async () => {
             if (!currentProduct) return;
-            const success = await likeProduct(currentProduct.id);
-            if (success) {
+            const data = await likeProduct(currentProduct.id);
+            if (data) {
                 const prod = products.find(p => p.id === currentProduct.id);
                 document.getElementById('modalLikeCount').textContent = prod.likes || 0;
                 const btn = document.getElementById('modalLikeBtn');
                 btn.classList.toggle('liked', likedProducts.has(currentProduct.id));
                 btn.querySelector('.heart').textContent = likedProducts.has(currentProduct.id) ? '❤️' : '🤍';
-                showToast(likedProducts.has(currentProduct.id) ? '❤️ Лайк добавлен!' : '💔 Лайк убран');
+                showToast(data.liked ? '❤️ Лайк добавлен!' : '💔 Лайк убран');
             }
         });
 
@@ -1109,6 +1123,7 @@
         });
 
         // ==================== INIT ====================
+        fetchMyLikes();
         fetchPublicProducts();
     </script>
 </body>
