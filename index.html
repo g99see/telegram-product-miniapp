@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Market HELPER — Публичный каталог</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a1a0a;
+            --bg-secondary: #0f2a0f;
+            --bg-card: #143014;
+            --bg-card-hover: #1a3d1a;
+            --accent: #2ecc71;
+            --accent-dark: #27ae60;
+            --accent-glow: rgba(46, 204, 113, 0.3);
+            --text-primary: #e8f5e8;
+            --text-secondary: #a8d5a8;
+            --text-muted: #6b9e6b;
+            --border: #1e4a1e;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            --radius: 12px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 40%, rgba(46, 204, 113, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 60%, rgba(39, 174, 96, 0.03) 0%, transparent 50%);
+            animation: bgFloat 20s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes bgFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(2%, 1%) rotate(1deg); }
+            66% { transform: translate(-1%, -2%) rotate(-1deg); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0 16px;
+            animation: fadeSlideDown 0.6s ease-out;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #58d68d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .filters {
+            animation: fadeSlideUp 0.6s ease-out 0.1s both;
+            margin-bottom: 16px;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            font-size: 15px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .search-box::before {
+            content: '🔍';
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            padding: 8px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+            user-select: none;
+        }
+
+        .filter-chip:hover,
+        .filter-chip.active {
+            background: var(--accent-dark);
+            border-color: var(--accent);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .filter-chip:active {
+            transform: scale(0.95);
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            animation: fadeSlideUp 0.6s ease-out 0.2s both;
+        }
+
+        .product-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+            transition: var(--transition);
+            animation: cardAppear 0.5s ease-out both;
+        }
+
+        .product-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow), 0 0 20px var(--accent-glow);
+        }
+
+        .product-card:active {
+            transform: scale(0.97);
+        }
+
+        @keyframes cardAppear {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .product-image {
+            width: 100%;
+            aspect-ratio: 1;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .product-info {
+            padding: 10px;
+        }
+
+        .product-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .product-price {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .product-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 6px;
+        }
+
+        .product-rating {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .like-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .like-btn:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .like-btn.liked {
+            background: rgba(231, 76, 60, 0.2);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .like-btn .heart {
+            transition: transform 0.3s ease;
+        }
+
+        .like-btn:active .heart {
+            animation: heartPulse 0.4s ease;
+        }
+
+        @keyframes heartPulse {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.4); }
+            50% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: 20px 20px 0 0;
+            width: 100%;
+            max-width: 480px;
+            max-height: 85vh;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-handle {
+            width: 40px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin: 12px auto;
+        }
+
+        .modal-image {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: var(--bg-card);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            overflow: hidden;
+        }
+
+        .modal-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .modal-content {
+            padding: 20px;
+        }
+
+        .modal-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .modal-price {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+
+        .modal-rating {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .stars {
+            color: #f1c40f;
+            font-size: 16px;
+        }
+
+        .modal-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .modal-characteristics {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .modal-characteristics h4 {
+            color: var(--accent);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .char-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .char-row:last-child {
+            border-bottom: none;
+        }
+
+        .char-key {
+            color: var(--text-muted);
+        }
+
+        .char-value {
+            color: var(--text-primary);
+        }
+
+        .modal-like-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .modal-like-btn:hover {
+            border-color: var(--accent);
+            background: var(--bg-card-hover);
+        }
+
+        .modal-like-btn.liked {
+            background: rgba(231, 76, 60, 0.2);
+            border-color: var(--danger);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            background: rgba(0, 0, 0, 0.5);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            background: rgba(0, 0, 0, 0.7);
+            transform: rotate(90deg);
+        }
+
+        .suggest-section {
+            margin-top: 24px;
+            animation: fadeSlideUp 0.6s ease-out 0.3s both;
+        }
+
+        .suggest-toggle {
+            width: 100%;
+            padding: 14px;
+            background: var(--bg-card);
+            border: 1px dashed var(--accent);
+            border-radius: var(--radius);
+            color: var(--accent);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .suggest-toggle:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .suggest-form {
+            display: none;
+            margin-top: 12px;
+            animation: fadeSlideUp 0.4s ease-out;
+        }
+
+        .suggest-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            border: none;
+            border-radius: var(--radius);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .submit-btn:active {
+            transform: scale(0.98);
+        }
+
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0);
+            animation: rippleAnim 0.6s linear;
+            pointer-events: none;
+        }
+
+        @keyframes rippleAnim {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 0;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 12px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .empty-state .icon {
+            font-size: 60px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 12px 20px;
+            color: var(--text-primary);
+            font-size: 14px;
+            z-index: 200;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeSlideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-dark);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🌍 Публичный каталог</h1>
+            <p>Лучшие товары сообщества</p>
+        </header>
+
+        <div class="filters">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Поиск товаров...">
+            </div>
+            <div class="filter-row" id="filterRow">
+                <div class="filter-chip active" data-filter="all">Все</div>
+            </div>
+        </div>
+
+        <div id="productsContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+                <div class="loading-text">Загрузка каталога...</div>
+            </div>
+        </div>
+
+        <div class="suggest-section">
+            <button class="suggest-toggle" id="suggestToggle">💡 Предложить товар</button>
+            <div class="suggest-form" id="suggestForm">
+                <div class="form-group">
+                    <label>Название товара</label>
+                    <input type="text" id="suggestName" placeholder="Введите название">
+                </div>
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea id="suggestDesc" placeholder="Краткое описание товара"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Цена</label>
+                    <input type="number" id="suggestPrice" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>Характеристики (ключ: значение, по одной на строку)</label>
+                    <textarea id="suggestChars" placeholder="Цвет: Красный\nРазмер: L"></textarea>
+                </div>
+                <button class="submit-btn" id="submitSuggest">Отправить на рассмотрение</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="productModal">
+            <div class="modal-handle"></div>
+            <button class="modal-close" id="modalClose">✕</button>
+            <div class="modal-image" id="modalImage">📦</div>
+            <div class="modal-content">
+                <h2 class="modal-title" id="modalTitle"></h2>
+                <div class="modal-price" id="modalPrice"></div>
+                <div class="modal-rating">
+                    <span class="stars" id="modalStars"></span>
+                    <span id="modalRatingText"></span>
+                </div>
+                <p class="modal-description" id="modalDesc"></p>
+                <div class="modal-characteristics" id="modalChars" style="display: none;">
+                    <h4>📋 Характеристики</h4>
+                    <div id="charsList"></div>
+                </div>
+                <button class="modal-like-btn" id="modalLikeBtn">
+                    <span class="heart">❤️</span>
+                    <span id="modalLikeCount">0</span> лайков
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API_URL = 'API_URL_PLACEHOLDER';
+        const CURRENCY = 'DKK';
+
+        let products = [];
+        let categories = [];
+        let activeFilter = 'all';
+        let searchQuery = '';
+        let likedProducts = new Set();
+        let currentProduct = null;
+
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            tg.setHeaderColor('#0a1a0a');
+            tg.setBackgroundColor('#0a1a0a');
+        }
+
+        async function fetchPublicProducts() {
+            try {
+                const res = await fetch(`${API_URL}/api/public`);
+                if (!res.ok) throw new Error('Network error');
+                const data = await res.json();
+                products = data.products || [];
+                categories = data.categories || [];
+                renderFilters();
+                renderProducts();
+            } catch (e) {
+                console.error('Fetch error:', e);
+                document.getElementById('productsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📡</div>
+                        <h3>Ошибка загрузки</h3>
+                        <p>Проверьте подключение и попробуйте снова</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function likeProduct(productId) {
+            try {
+                const initData = tg?.initData || '';
+                const res = await fetch(`${API_URL}/api/like`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ product_id: productId, initData })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    const prod = products.find(p => p.id === productId);
+                    if (prod) {
+                        prod.likes = data.likes;
+                        if (likedProducts.has(productId)) {
+                            likedProducts.delete(productId);
+                        } else {
+                            likedProducts.add(productId);
+                        }
+                    }
+                    return true;
+                }
+            } catch (e) {
+                console.error('Like error:', e);
+            }
+            return false;
+        }
+
+        async function suggestProduct(data) {
+            try {
+                const initData = tg?.initData || '';
+                const res = await fetch(`${API_URL}/api/suggest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...data, initData })
+                });
+                return res.ok;
+            } catch (e) {
+                console.error('Suggest error:', e);
+                return false;
+            }
+        }
+
+        function renderFilters() {
+            const row = document.getElementById('filterRow');
+            row.innerHTML = '<div class="filter-chip active" data-filter="all">Все</div>';
+            categories.forEach(cat => {
+                const chip = document.createElement('div');
+                chip.className = 'filter-chip';
+                chip.dataset.filter = cat.id;
+                chip.textContent = cat.name;
+                row.appendChild(chip);
+            });
+
+            row.addEventListener('click', (e) => {
+                const chip = e.target.closest('.filter-chip');
+                if (!chip) return;
+                row.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                activeFilter = chip.dataset.filter;
+                renderProducts();
+            });
+        }
+
+        function renderProducts() {
+            const container = document.getElementById('productsContainer');
+            let filtered = products;
+
+            if (activeFilter !== 'all') {
+                filtered = filtered.filter(p => p.category_id == activeFilter);
+            }
+
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                filtered = filtered.filter(p =>
+                    p.name.toLowerCase().includes(q) ||
+                    (p.description && p.description.toLowerCase().includes(q))
+                );
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📦</div>
+                        <h3>Пока пусто</h3>
+                        <p>Администрация ещё не добавила публичные товары</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '<div class="products-grid">' +
+                filtered.map((p, i) => `
+                    <div class="product-card" data-id="${p.id}" style="animation-delay: ${i * 0.05}s">
+                        <div class="product-image">
+                            ${p.photo_url ? `<img src="${p.photo_url}" alt="${escapeHtml(p.name)}" loading="lazy">` : '📦'}
+                        </div>
+                        <div class="product-info">
+                            <div class="product-name">${escapeHtml(p.name)}</div>
+                            <div class="product-price">${p.price ? p.price.toFixed(2) + ' ' + CURRENCY : '—'}</div>
+                            <div class="product-meta">
+                                <span class="product-rating">${'⭐'.repeat(Math.round(p.rating))}${'☆'.repeat(10 - Math.round(p.rating))}</span>
+                                <button class="like-btn ${likedProducts.has(p.id) ? 'liked' : ''}" data-id="${p.id}">
+                                    <span class="heart">${likedProducts.has(p.id) ? '❤️' : '🤍'}</span>
+                                    <span>${p.likes || 0}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('') + '</div>';
+
+            container.querySelectorAll('.product-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    if (e.target.closest('.like-btn')) return;
+                    openModal(parseInt(card.dataset.id));
+                });
+            });
+
+            container.querySelectorAll('.like-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const id = parseInt(btn.dataset.id);
+                    const success = await likeProduct(id);
+                    if (success) {
+                        renderProducts();
+                        showToast('❤️ Лайк добавлен!');
+                    }
+                });
+            });
+        }
+
+        function openModal(productId) {
+            const prod = products.find(p => p.id === productId);
+            if (!prod) return;
+            currentProduct = prod;
+
+            document.getElementById('modalTitle').textContent = prod.name;
+            document.getElementById('modalPrice').textContent = prod.price ? prod.price.toFixed(2) + ' ' + CURRENCY : '—';
+            document.getElementById('modalStars').textContent = '⭐'.repeat(Math.round(prod.rating)) + '☆'.repeat(10 - Math.round(prod.rating));
+            document.getElementById('modalRatingText').textContent = `${prod.rating} / 10`;
+            document.getElementById('modalDesc').textContent = prod.description || 'Описание отсутствует';
+            document.getElementById('modalLikeCount').textContent = prod.likes || 0;
+
+            const modalLikeBtn = document.getElementById('modalLikeBtn');
+            modalLikeBtn.classList.toggle('liked', likedProducts.has(prod.id));
+            modalLikeBtn.querySelector('.heart').textContent = likedProducts.has(prod.id) ? '❤️' : '🤍';
+
+            const imageEl = document.getElementById('modalImage');
+            if (prod.photo_url) {
+                imageEl.innerHTML = `<img src="${prod.photo_url}" alt="${escapeHtml(prod.name)}">`;
+            } else {
+                imageEl.innerHTML = '📦';
+            }
+
+            const charsEl = document.getElementById('modalChars');
+            const charsList = document.getElementById('charsList');
+            if (prod.characteristics && Object.keys(prod.characteristics).length > 0) {
+                charsEl.style.display = 'block';
+                charsList.innerHTML = Object.entries(prod.characteristics).map(([k, v]) =>
+                    `<div class="char-row"><span class="char-key">${escapeHtml(k)}</span><span class="char-value">${escapeHtml(v)}</span></div>`
+                ).join('');
+            } else {
+                charsEl.style.display = 'none';
+            }
+
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            currentProduct = null;
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.submit-btn');
+            if (!btn) return;
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple';
+            const rect = btn.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+            ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+            btn.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        });
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            renderProducts();
+        });
+
+        document.getElementById('modalOverlay').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modalOverlay')) {
+                closeModal();
+            }
+        });
+
+        document.getElementById('modalClose').addEventListener('click', closeModal);
+
+        document.getElementById('modalLikeBtn').addEventListener('click', async () => {
+            if (!currentProduct) return;
+            const success = await likeProduct(currentProduct.id);
+            if (success) {
+                const prod = products.find(p => p.id === currentProduct.id);
+                document.getElementById('modalLikeCount').textContent = prod.likes || 0;
+                const btn = document.getElementById('modalLikeBtn');
+                btn.classList.toggle('liked', likedProducts.has(currentProduct.id));
+                btn.querySelector('.heart').textContent = likedProducts.has(currentProduct.id) ? '❤️' : '🤍';
+                showToast(likedProducts.has(currentProduct.id) ? '❤️ Лайк добавлен!' : '💔 Лайк убран');
+            }
+        });
+
+        document.getElementById('suggestToggle').addEventListener('click', () => {
+            const form = document.getElementById('suggestForm');
+            form.classList.toggle('active');
+        });
+
+        document.getElementById('submitSuggest').addEventListener('click', async () => {
+            const name = document.getElementById('suggestName').value.trim();
+            const desc = document.getElementById('suggestDesc').value.trim();
+            const price = parseFloat(document.getElementById('suggestPrice').value);
+            const charsText = document.getElementById('suggestChars').value.trim();
+
+            if (!name) {
+                showToast('❌ Введите название товара');
+                return;
+            }
+
+            const characteristics = {};
+            if (charsText) {
+                charsText.split('\n').forEach(line => {
+                    if (line.includes(':')) {
+                        const [key, ...rest] = line.split(':');
+                        characteristics[key.trim()] = rest.join(':').trim();
+                    }
+                });
+            }
+
+            const data = {
+                name,
+                description: desc || null,
+                price: isNaN(price) ? null : price,
+                characteristics
+            };
+
+            showToast('⏳ Отправка...');
+            const success = await suggestProduct(data);
+
+            if (success) {
+                showToast('✅ Предложение отправлено!');
+                document.getElementById('suggestName').value = '';
+                document.getElementById('suggestDesc').value = '';
+                document.getElementById('suggestPrice').value = '';
+                document.getElementById('suggestChars').value = '';
+                document.getElementById('suggestForm').classList.remove('active');
+            } else {
+                showToast('❌ Ошибка отправки');
+            }
+        });
+
+        fetchPublicProducts();
+    </script>
+</body>
+</html>
